@@ -1,0 +1,28 @@
+pootle:
+  build: .
+  #image: 1drop/pootle
+  links:
+    - redis
+    - mysql
+  ports:
+    - "8000:8000"
+  volumes_from:
+    - storage
+  env_file:
+    - environment.yml
+
+mysql:
+  image: mariadb:10
+  volumes_from:
+    - storage
+  env_file:
+    - environment.yml
+
+redis:
+  image: redis
+
+storage:
+  image: busybox
+  volumes:
+    - /var/lib/mysql
+    - /var/www/pootle/data
