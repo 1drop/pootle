@@ -9,4 +9,4 @@ On the first run you must setup your database and create an admin user.
     pootle migrate
     pootle initdb
     pootle createsuperuser
-    pootle verifyuser
+    pootle verify_user --all
