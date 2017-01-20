@@ -1,0 +1,203 @@
+
+. /etc/profile.d/pootle.sh
+
+#
+# Log
+
+# Usage: msg "message"
+function msg() {
+	local MSG="$@"
+	logger -s -t POOTLE "$MSG"
+}
+
+# Usage: log_notice "message"
+function log_notice() {
+	local MSG="$@"
+	logger -p local0.notice -t POOTLE "$MSG"
+}
+
+#
+# MySQL
+
+# Usage: mysqlpipe "sql-query"
+function mysqlpipe() {
+	local DATABASE_NAME=$(grep -A8 DATABASES ${POOTLE_CONF} | grep NAME | sed -r "s/^.*: '(.*)'.*$/\1/")
+	local DATABASE_USER=$(grep -A8 DATABASES ${POOTLE_CONF} | grep USER | sed -r "s/^.*: '(.*)'.*$/\1/")
+	local DATABASE_PASSWORD=$(grep -A8 DATABASES ${POOTLE_CONF} | grep PASSWORD | sed -r "s/^.*: '(.*)'.*$/\1/")
+	local DATABASE_HOST=$(grep -A8 DATABASES ${POOTLE_CONF} | grep HOST | sed -r "s/^.*: '(.*)'.*$/\1/")
+
+	echo $@ | mysql -u ${DATABASE_USER} -p"${DATABASE_PASSWORD}" -h ${DATABASE_HOST} ${DATABASE_NAME} | sed '1d'
+}
+
+#
+# XSLT
+
+# Usage: llxml2xliff extension-key language-key sourcexliff targetxliff
+function llxml2xliff() {
+	local EXTENSION=$1
+	local LANG=$2
+	local SOURCE=$3
+	local TARGET=$4
+
+	if [ -z "$EXTENSION" ] || [ -z "$LANG" ] || [ -z "$SOURCE" ] || [ -z "$TARGET" ]; then
+		echo
+		msg "Please provide source and target XLIFF. Unable to convert XLIFF to LLXML."
+		echo
+		exit 1
+	fi
+	
+	xsltproc --stringparam source $SOURCE \
+		--stringparam lang $LANG \
+		--stringparam extension $EXTENSION \
+		--stringparam date "$(date -u)" \
+		$XSL_LLXML2XLIFF_TARGET $TARGET
+}
+
+#
+# Pootle
+
+# Usage: list_all_typo3_project
+function list_all_typo3_project() {
+	ls ${POOTLE_PO} | grep ^TYPO3.
+}
+
+# Usage: list_typo3_core_projects
+function list_typo3_core_projects() {
+	ls ${POOTLE_PO} | grep ^TYPO3.core.
+}
+
+# Usage: project_exist project.name
+function project_exist() {
+	echo -n "[INFO]    Check if project \"$1\" exists: "
+	if [ -n "$1" ] && [ -d ${POOTLE_PO}/$1 ]; then
+		echo "OK"
+		if [ ! -d ${POOTLE_PO}/$1/templates ]; then
+			mkdir -p ${POOTLE_PO}/$1/templates
+			echo "[INFO]    Check if the templates exist: CREATED"
+			return 1
+		fi
+	else
+		echo "FAILED"
+		return 1
+	fi
+}
+
+# Usage: check_available_languages project.name
+function check_available_languages() {
+	for LANGUAGE_KEY in $(cat ~/templates/languages.txt); do
+		if [ -n "$1" ] && [ ! -d ${POOTLE_PO}/$1/$LANGUAGE_KEY ]; then
+			mkdir -p $POOTLE_PO/$1/$LANGUAGE_KEY
+			echo "[NOTICE]  Create project language \"$LANGUAGE_KEY\" for \"$1\""
+			pootle-manage update_translation_projects --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
+			pootle-manage update_against_templates --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
+			pootle-manage refresh_stats --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
+		fi
+	done
+}
+
+# Usage: getProjectUpdatedSince 2011-07-14
+function getProjectUpdatedSince() {
+	local SINCE=$1
+	local PROJECT_ONLY=$2
+
+	if [ -z "$SINCE" ]; then
+		echo "[ERROR]   Empty date, unable to select updated project" >&2
+		exit 1
+	fi
+
+	if [ -z "$PROJECT_ONLY" ]; then
+		mysqlpipe "SELECT p.id, p.code, u.mtime, UNIX_TIMESTAMP(u.mtime) AS tstamp
+			FROM pootle_app_project AS p
+			LEFT JOIN pootle_app_translationproject as tp ON p.id = tp.project_id
+			LEFT JOIN pootle_store_store AS s ON tp.id = s.translation_project_id
+			LEFT JOIN pootle_store_unit AS u ON s.id = u.store_id
+			WHERE ( u.state = 50 OR u.state = 200 ) AND u.mtime > '$SINCE'
+			AND p.code != 'terminology' AND p.code != 'tutorial'
+			GROUP BY p.id
+			ORDER BY u.mtime DESC;"
+	else
+		mysqlpipe "SELECT p.id, p.code, u.mtime, UNIX_TIMESTAMP(u.mtime) AS tstamp
+			FROM pootle_app_project AS p
+			LEFT JOIN pootle_app_translationproject as tp ON p.id = tp.project_id
+			LEFT JOIN pootle_store_store AS s ON tp.id = s.translation_project_id
+			LEFT JOIN pootle_store_unit AS u ON s.id = u.store_id
+			WHERE ( u.state = 50 OR u.state = 200 )
+			AND p.code = '$PROJECT_ONLY'
+			GROUP BY p.id
+			ORDER BY u.mtime DESC;"
+	fi
+}
+
+# Usage: getLanguageProjectUpdatedSince project-id 2011-07-14
+function getLanguageProjectUpdatedSince() {
+	local PROJECT_ID=$1
+	if [ -z "$PROJECT_ID" ]; then
+		echo "[ERROR]   Empty project id, unable to select updated language project" >&2
+		exit 1
+	fi
+	local SINCE=$2
+	if [ -z "$SINCE" ]; then
+		echo "[ERROR]   Empty date, unable to select updated language project" >&2
+		exit 1
+	fi
+
+	mysqlpipe "SELECT tp.real_path, p.id, p.code, u.mtime, UNIX_TIMESTAMP(u.mtime) AS tstamp, l.code AS language
+		FROM pootle_app_project AS p
+		LEFT JOIN pootle_app_translationproject as tp ON p.id = tp.project_id
+		LEFT JOIN pootle_store_store AS s ON tp.id = s.translation_project_id
+		LEFT JOIN pootle_store_unit AS u ON s.id = u.store_id
+		LEFT JOIN pootle_app_language AS l ON l.id = tp.language_id
+		WHERE ( u.state = 50 OR u.state = 200 ) AND u.mtime > '$SINCE' AND p.id = $PROJECT_ID
+		GROUP BY tp.id
+		ORDER BY u.mtime DESC;"
+}
+
+# Usage: lastedit "project" "language"
+function lastedit() {
+	local PROJECT="$1"
+	local LANGUAGE="$2"
+
+	timestamp=$(mysqlpipe "SELECT p.id, p.code, l.code AS lang, MAX(u.mtime), UNIX_TIMESTAMP(MAX(u.mtime)) AS tstamp
+		FROM pootle_app_project AS p
+		LEFT JOIN pootle_app_translationproject as tp ON p.id = tp.project_id
+		LEFT JOIN pootle_store_store AS s ON tp.id = s.translation_project_id
+		LEFT JOIN pootle_store_unit AS u ON s.id = u.store_id
+		INNER JOIN pootle_app_language l ON l.id = tp.language_id
+		WHERE ( u.state = 50 OR u.state = 200 )
+		AND p.code = '$PROJECT'
+		AND l.code = '$LANGUAGE'
+		GROUP BY p.id, l.code;" \
+	| awk '{ print $6 }')
+
+	if [ -z "$timestamp" ]; then
+		echo 0
+	else
+		echo $timestamp
+	fi
+}
+
+# Usage: validProjectName project.name
+function validProjectName() {
+	local PROJECT_NAME=$1
+	if [ "$PROJECT_NAME" == "" ]; then
+		echo "[ERROR]   Missing project name" >&2
+		exit 1
+	fi
+
+	if [ -d $POOTLE_PO/$PROJECT_NAME ]; then
+		return 0
+	else
+		exit 1
+	fi
+}
+
+# Usage: sanitize_template_file /path/to/file.xlf
+function sanitize_template_file() {
+	if [ "$1" != "" ] && [ -f "$1" ]; then
+		xmlstarlet ed -d "/xliff/file[@xml:space]/@xml:space" $1 | \
+			xmlstarlet ed -d "/xliff/file/body/trans-unit/target" | \
+			xmlstarlet ed -d "/xliff/file[@target-language]/@target-language" | \
+			xmlstarlet ed -d "/xliff/file/body/trans-unit[@approved]/@approved" | \
+			xmlstarlet ed -u "/xliff/file[@source-language]/@source-language" -v en
+	fi
+}

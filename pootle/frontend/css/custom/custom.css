@@ -1,0 +1,178 @@
+/* Here you can add any extra CSS to override the default styling. Have a look
+ * at the supplied CSS files for ideas. This CSS file will be applied to all
+ * pages, unless you modify the default base template (templates/base.html).
+ *
+ * You can refer to images in the CSS directly using paths relative to the css
+ * directory, for example:
+ *   url('custom/image.png') to refer to /css/custom/image.png
+ */
+
+@font-face {
+    font-family: 'Share';
+    src: url('../fonts/share-bold-webfont.eot');
+    src: url('../fonts/share-bold-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/share-bold-webfont.woff') format('woff'),
+         url('../fonts/share-bold-webfont.ttf') format('truetype'),
+         url('../fonts/share-bold-webfont.svg#Share-BoldRegular') format('svg');
+    font-weight: bold;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Share';
+    src: url('../fonts/share-italic-webfont.eot');
+    src: url('../fonts/share-italic-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/share-italic-webfont.woff') format('woff'),
+         url('../fonts/share-italic-webfont.ttf') format('truetype'),
+         url('../fonts/share-italic-webfont.svg#Share-ItalicRegular') format('svg');
+    font-weight: normal;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Share';
+    src: url('../fonts/share-regular-webfont.eot');
+    src: url('../fonts/share-regular-webfont.eot?#iefix') format('embedded-opentype'),
+         url('../fonts/share-regular-webfont.woff') format('woff'),
+         url('../fonts/share-regular-webfont.ttf') format('truetype'),
+         url('../fonts/share-regular-webfont.svg#Share-Regular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+a,
+a:link
+{
+    color: #f58006;
+}
+
+#navbar a
+{
+    color: #fff;
+    text-shadow: none;
+}
+
+#navbar a.brand,
+h2.title,
+h2 span a,
+ul.breadcrumb,
+.news-feed h2,
+.hd h2,
+.form h2,
+.select2-container a span,
+#overview-description-project h3,
+#overview-description-project h4,
+#overview-description-tp h3,
+#overview-description-tp h4,
+#tabs li a,
+#precontent h3
+{
+    font-family: Share;
+}
+
+#navbar-inner
+{
+    background-color: #f58006;
+    border-bottom: 1px solid #e97e0d;
+    -webkit-box-shadow: none;
+       -moz-box-shadow: none;
+            box-shadow: none;
+}
+
+.logo {
+    background: url('../images/typo3-white-transparent.png') no-repeat top left;
+}
+
+#tabs a.admintab,
+#tabs.admin a,
+#tabs a .admin,
+.tags-add{
+    color: #73c !important;
+}
+
+table.translate-table tr.edit-row,
+table.translate-table tr.view-row:hover
+{
+    background-color: #fdf0dd;
+}
+
+table.translate-table tr.edit-row:hover,
+table.translate-table tr.delimiter-row
+{
+    background-color: #ffe4bb;
+}
+
+table.translate-table tr.edit-ctx,
+table.translate-table tr.ctx-row
+{
+    background-color: #fdf4e6;
+}
+
+.extra-item
+{
+    background-color: #ffc;
+}
+
+.alert-info
+{
+    color: #f58006;
+    background-color: #ffe4bb;
+    border-color: #e97e0d;
+}
+
+ul.pager li span.current-link,
+ul.pager li a:hover
+{
+    color: #f58006;
+    background-color: #ffe4bb;
+    border-color: #e97e0d;
+}
+
+.form
+{
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffe4bb', endColorstr='#e97e0d');
+    background: -webkit-gradient(linear, left top, left bottom, from(#ffe4bb), to(#e97e0d));
+    background: -webkit-linear-gradient(top,  #ffe4bb,  #e97e0d);
+    background:    -moz-linear-gradient(top,  #ffe4bb,  #e97e0d);
+    background:     -ms-linear-gradient(top,  #ffe4bb,  #e97e0d);
+    background:      -o-linear-gradient(top,  #ffe4bb,  #e97e0d);
+    background:         linear-gradient(top,  #ffe4bb,  #e97e0d);
+}
+
+.buttons input[type="submit"].submit,
+.translate-buttons-block input.submit:active
+{
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffee', endColorstr='#f58006') !important;
+    background: -webkit-gradient(linear, left top, left bottom, from(#ffe), to(#f58006)) !important;
+    background: -webkit-linear-gradient(top,  #ffe,  #f58006) !important;
+    background:    -moz-linear-gradient(top,  #ffe,  #f58006) !important;
+    background:     -ms-linear-gradient(top,  #ffe,  #f58006) !important;
+    background:      -o-linear-gradient(top,  #ffe,  #f58006) !important;
+    background:         linear-gradient(top,  #ffe,  #f58006) !important;
+}
+
+.translate-buttons-block input.submit:hover {
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffffff', endColorstr='#f19743') !important;
+    background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#f19743)) !important;
+    background: -webkit-linear-gradient(top,  #fff,  #f19743) !important;
+    background:    -moz-linear-gradient(top,  #fff,  #f19743) !important;
+    background:     -ms-linear-gradient(top,  #fff,  #f19743) !important;
+    background:      -o-linear-gradient(top,  #fff,  #f19743) !important;
+    background:         linear-gradient(top,  #fff,  #f19743) !important;
+}
+
+@media
+only screen and (-webkit-min-device-pixel-ratio: 2),
+only screen and (   min--moz-device-pixel-ratio: 2),
+only screen and (     -o-min-device-pixel-ratio: 2/1),
+only screen and (        min-device-pixel-ratio: 2),
+only screen and (                min-resolution: 192dpi),
+only screen and (                min-resolution: 2dppx) {
+
+    .logo
+    {
+        background: url('../images/typo3-white-transparent@2x.png') no-repeat top left;
+        background-size: 52px 32px;
+    }
+
+}

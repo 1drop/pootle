@@ -1,28 +1,50 @@
-pootle:
-  build: .
-  #image: 1drop/pootle
-  links:
-    - redis
-    - mysql
-  ports:
-    - "8000:8000"
-  volumes_from:
-    - storage
-  env_file:
-    - environment.yml
+version: '2'
 
-mysql:
-  image: mariadb:10
-  volumes_from:
-    - storage
-  env_file:
-    - environment.yml
+services: 
+  nginx:
+    build:
+      context: nginx
+      dockerfile: Dockerfile
+    depends_on: 
+      - pootle
+    # ports: 
+    #   - "80:80"
+    volumes_from: 
+      - pootle
+    environment: 
+      - VIRTUAL_HOST=pootle.docker
+      - VIRTUAL_PORT=80
+  pootle:
+    build:
+      context: pootle
+      dockerfile: Dockerfile
+    depends_on: 
+      - redis
+      - mysql
+    ports:
+      - "8000:8000"
+    volumes:
+      - l10n-ter:/l10n_ter
+      - pootle-po:/srv/pootle/po
+      - pootle-data:/srv/pootle/data
+      - pootle-git:/srv/pootle/git-clones
+    environment:
+      - SECRET_KEY=SET THIS TO A DJANGO SECRET KEY
+    env_file:
+      - etc/environment.yml
+  mysql:
+    image: mariadb:10
+    volumes:
+      - mysql-data:/var/lib/mysql
+    env_file:
+      - etc/environment.yml
+  redis:
+    image: redis
 
-redis:
-  image: redis
-
-storage:
-  image: busybox
-  volumes:
-    - /var/lib/mysql
-    - /var/www/pootle/data
+volumes:
+  mysql-data:
+  l10n-ter:
+  pootle-po:
+  pootle-data:
+  pootle-git:
+  

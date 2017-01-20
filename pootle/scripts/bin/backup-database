@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+. /etc/profile.d/pootle.sh
+
+DATABASE_NAME=$(grep -A8 DATABASES ${POOTLE_CONF} | grep NAME | sed -r "s/^.*: '(.*)'.*$/\1/")
+DATABASE_USER=$(grep -A8 DATABASES ${POOTLE_CONF} | grep USER | sed -r "s/^.*: '(.*)'.*$/\1/")
+DATABASE_PASSWORD=$(grep -A8 DATABASES ${POOTLE_CONF} | grep PASSWORD | sed -r "s/^.*: '(.*)'.*$/\1/")
+DATABASE_HOST=$(grep -A8 DATABASES ${POOTLE_CONF} | grep HOST | sed -r "s/^.*: '(.*)'.*$/\1/")
+
+echo "[INFO]    Pootle database: ${DATABASE_NAME}"
+echo "[INFO]    Pootle username: ${DATABASE_USER}"
+echo "[INFO]    Pootle DB host:  ${DATABASE_HOST}"
+
+MYSQL_CONNECT="--host=${DATABASE_HOST} -u ${DATABASE_USER} --password=${DATABASE_PASSWORD}"
+NOW="$(date +"%Y-%m-%d")-$(date +"%H%M%S")"
+DUMP_FILE="${DATABASE_NAME}_${NOW}.sql"
+
+mkdir -p ${POOTLE_BACKUP_ROOT}
+
+echo -n "[INFO]    Dumping database structure ... "
+mysqldump ${MYSQL_CONNECT} --no-data --databases ${DATABASE_NAME} \
+	> ${POOTLE_BACKUP_ROOT}/${DUMP_FILE}
+echo "done."
+
+echo -n "[INFO]    Dumping database content (without cache data) ... "
+mysqldump ${MYSQL_CONNECT} --hex-blob --databases ${DATABASE_NAME} \
+	--ignore-table=${DATABASE_NAME}.django_session \
+	--ignore-table=${DATABASE_NAME}.pootlecache \
+	>> ${POOTLE_BACKUP_ROOT}/${DUMP_FILE}
+echo "done."
+
+echo -n "[INFO]    Compressing backup file ... "
+gzip ${POOTLE_BACKUP_ROOT}/${DUMP_FILE}
+echo "done."
+echo "[INFO]    Archive: ${POOTLE_BACKUP_ROOT}/${DUMP_FILE}.gz"
+
+# Create link to latest dump
+echo "[INFO]    Updating link to latest dump"
+pushd ${POOTLE_BACKUP_ROOT} >/dev/null
+rm -f latest.sql.gz
+ln -s ${DUMP_FILE}.gz latest.sql.gz
+popd >/dev/null
+echo "[INFO]    Link: ${POOTLE_BACKUP_ROOT}/latest.sql.gz"
+
+# Remove oldest dumps
+echo "[INFO]    Removing backup older than ${POOTLE_BACKUP_DAYS} days"
+find ${POOTLE_BACKUP_ROOT} -type f -mtime +${POOTLE_BACKUP_DAYS} -delete
+
+echo "[INFO]    ====== BACKUP FINISHED ======"

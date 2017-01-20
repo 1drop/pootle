@@ -1,0 +1,11 @@
+DOMAIN=pootle.docker
+
+POOTLE_TITLE=TYPO3 Translation Server
+POOTLE_ADMIN_NAME=John Doe
+POOTLE_ADMIN_MAIL=john.doe@mail.com
+POOTLE_SENDER_MAIL=no-reply@pootle.docker
+
+MYSQL_ROOT_PASSWORD=root
+MYSQL_USER=pootle
+MYSQL_PASSWORD=pootle
+MYSQL_DATABASE=pootle_db

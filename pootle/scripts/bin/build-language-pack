@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+
+. /etc/profile.d/pootle.sh
+. /home/pootle/scripts/etc/functions
+
+# -- no need to modify anything below
+
+FORCE_EXTENSION=$1
+EXT_PREFIX=TYPO3.ext
+EXT_PREFIX_LENGTH=$(($(echo -n ${EXT_PREFIX} | wc -c) + 2))
+if [ ! -z "${FORCE_EXTENSION}" ]; then
+	EXTENSIONS=${FORCE_EXTENSION}
+else
+	EXTENSIONS=$(ls ${POOTLE_PO} | grep ${EXT_PREFIX} | cut -b${EXT_PREFIX_LENGTH}-)
+fi
+
+cd $(dirname $0)
+
+for EXTNAME in $EXTENSIONS; do
+	validProjectName ${EXT_PREFIX}.${EXTNAME} || exit 1
+
+	echo "Packaging $EXTNAME / $(date +'%d.%m.%Y %H:%M:%S')"
+
+	pushd ${POOTLE_PO}/$EXT_PREFIX.$EXTNAME >/dev/null
+	rm -rf ${TER_L10N_PATH}/_$EXTNAME
+
+	LANGUAGE_PACK_PATH=${TER_L10N_PATH}/${EXTNAME:0:1}/${EXTNAME:1:1}/${EXTNAME}-l10n
+	BUILD_EXT_PATH=${TER_L10N_PATH}/.$EXTNAME
+	rm -rf ${BUILD_EXT_PATH}
+	mkdir -p $LANGUAGE_PACK_PATH
+	mkdir -p $STATE_DIR/$EXT_PREFIX.$EXTNAME
+
+	UPDATED_PACKAGES=0
+
+	LANGUAGES="$(ls | grep -v templates) ba br ch cz dk si se gr hk kr ua jp qc vn ge ga"
+	for LANG in $LANGUAGES; do
+		ORIG_LANG=$LANG
+		case "$LANG" in
+			'ba')
+				ORIG_LANG=bs ;;
+			'br')
+				ORIG_LANG=pt_BR ;;
+			'ch')
+				ORIG_LANG=zh_CN ;;
+			'cz')
+				ORIG_LANG=cs ;;
+			'dk')
+				ORIG_LANG=da ;;
+			'si')
+				ORIG_LANG=sl ;;
+			'se')
+				ORIG_LANG=sv ;;
+			'gr')
+				ORIG_LANG=el ;;
+			'hk')
+				ORIG_LANG=zh_HK ;;
+			'kr')
+				ORIG_LANG=ko ;;
+			'ua')
+				ORIG_LANG=uk ;;
+			'jp')
+				ORIG_LANG=ja ;;
+			'qc')
+				ORIG_LANG=fr_CA ;;
+			'vn')
+				ORIG_LANG=vi ;;
+			'ge')
+				ORIG_LANG=ka ;;
+			'ga')
+				ORIG_LANG=gl ;;
+		esac
+
+		echo -n "   processing $LANG ... "
+
+		# Compute current state
+		STATUS_FILE=$STATE_DIR/$EXT_PREFIX.$EXTNAME/$LANG.time
+		if [[ -f $STATUS_FILE && -z "$FORCE_EXTENSION" ]]; then
+			LAST_GENERATION=$(cat ${STATUS_FILE})
+		else
+			LAST_GENERATION=0
+		fi
+		LAST_EDIT=$(lastedit "$EXT_PREFIX.$EXTNAME" $ORIG_LANG)
+		if [[ $LAST_EDIT -gt 0 && $LAST_EDIT -ne $LAST_GENERATION ]]; then
+			pootle sync_stores --overwrite --project="$EXT_PREFIX.$EXTNAME" --language=$ORIG_LANG >/dev/null 2>&1
+
+			BUILD_PATH=${BUILD_EXT_PATH}/$LANG/$EXTNAME
+			mkdir -p ${BUILD_PATH}
+			cp -r $ORIG_LANG/* ${BUILD_PATH}
+			pushd ${BUILD_PATH} >/dev/null
+			for XLF in $(find . -type f -name \*.xlf | cut -b3-); do
+				DIR=$(dirname $XLF)
+				FILE=$(basename $XLF)
+				mv $XLF $DIR/$LANG.$FILE
+
+				# Convert XLIFF to LLXML
+				SOURCE_XLIFF_FILE=${POOTLE_PO}/$EXT_PREFIX.$EXTNAME/templates/$DIR/$FILE
+				LLXML=${DIR}/${LANG}.$(echo $FILE | sed s/\.xlf$/\.xml/)
+				llxml2xliff ${EXTNAME} \
+					${LANG} \
+					${SOURCE_XLIFF_FILE} \
+					${DIR}/${LANG}.${FILE} > ${LLXML}
+			done
+			find . -name \*.xlf -exec chmod 644 {} \;
+			find . -name \*.xml -exec chmod 644 {} \;
+			rm -f $LANGUAGE_PACK_PATH/$EXTNAME-l10n-$LANG.zip
+			# ../ to include $EXTNAME directory
+			cd ../
+			zip -9 $LANGUAGE_PACK_PATH/$EXTNAME-l10n-$LANG.zip -r . >/dev/null
+			chmod 644 ${LANGUAGE_PACK_PATH}/${EXTNAME}-l10n-${LANG}.zip
+
+			popd >/dev/null
+
+			# Save current state
+			echo $LAST_EDIT > $STATUS_FILE
+			UPDATED_PACKAGES=1
+			echo "done."
+		else
+			echo "skipped."
+		fi
+	done
+
+	if [ ${UPDATED_PACKAGES} -eq 1 ]; then
+		# Create language pack index
+		pushd $LANGUAGE_PACK_PATH >/dev/null
+
+		_LANGUAGE_PACK_NAME=${EXTNAME}-l10n
+		_LANGUAGE_INDEX_FILE=${_LANGUAGE_PACK_NAME}.xml
+		rm -f $_LANGUAGE_INDEX_FILE
+		touch $_LANGUAGE_INDEX_FILE
+
+		echo -e "<?xml version=\"1.0\" standalone=\"yes\" ?>"                   >> $_LANGUAGE_INDEX_FILE
+		echo -e "<TERlanguagePackIndex>"                                        >> $_LANGUAGE_INDEX_FILE
+		echo -e "\t<meta>"                                                      >> $_LANGUAGE_INDEX_FILE
+		echo -e "\t\t<timestamp>$(date +"%s")</timestamp>"                      >> $_LANGUAGE_INDEX_FILE
+		echo -e "\t\t<date>$(date +"%F %T")</date>"                             >> $_LANGUAGE_INDEX_FILE
+		echo -e "\t</meta>"                                                     >> $_LANGUAGE_INDEX_FILE
+		echo -e "\t<languagePackIndex>"                                         >> $_LANGUAGE_INDEX_FILE
+
+		for p in $(find . -name \*.zip | sort);
+		do
+			_LANGUAGE_KEY=$(echo $p | sed -r "s/.*${_LANGUAGE_PACK_NAME}-(.*)\.zip\$/\1/")
+			echo -e "\t\t<languagepack language=\"$_LANGUAGE_KEY\">"      	    >> $_LANGUAGE_INDEX_FILE
+			echo -e "\t\t\t<md5>$(md5sum $p | cut -d" " -f1)</md5>"        	    >> $_LANGUAGE_INDEX_FILE
+			echo -e "\t\t</languagepack>"                                  	    >> $_LANGUAGE_INDEX_FILE
+		done
+
+		echo -e "\t</languagePackIndex>"                                        >> $_LANGUAGE_INDEX_FILE
+		echo -e "</TERlanguagePackIndex>"                                       >> $_LANGUAGE_INDEX_FILE
+
+		chmod 644 $_LANGUAGE_INDEX_FILE
+
+		popd >/dev/null
+
+		# Mark changes on directories and fix access rights
+		touch ${TER_L10N_PATH}/${EXTNAME:0:1}/${EXTNAME:1:1}/${EXTNAME}-l10n
+		chmod 755 ${TER_L10N_PATH}/${EXTNAME:0:1}/${EXTNAME:1:1}/${EXTNAME}-l10n
+		touch ${TER_L10N_PATH}/${EXTNAME:0:1}/${EXTNAME:1:1}
+		chmod 755 ${TER_L10N_PATH}/${EXTNAME:0:1}/${EXTNAME:1:1}
+		touch ${TER_L10N_PATH}/${EXTNAME:0:1}
+		chmod 755 ${TER_L10N_PATH}/${EXTNAME:0:1}
+	fi
+
+	rm -rf ${TER_L10N_PATH}/_$EXTNAME
+
+	popd >/dev/null
+
+	echo "[DONE] Packaging $EXTNAME / $(date +'%d.%m.%Y %H:%M:%S')"
+done
