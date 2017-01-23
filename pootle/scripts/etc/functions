@@ -21,12 +21,7 @@ function log_notice() {
 
 # Usage: mysqlpipe "sql-query"
 function mysqlpipe() {
-	local DATABASE_NAME=$(grep -A8 DATABASES ${POOTLE_CONF} | grep NAME | sed -r "s/^.*: '(.*)'.*$/\1/")
-	local DATABASE_USER=$(grep -A8 DATABASES ${POOTLE_CONF} | grep USER | sed -r "s/^.*: '(.*)'.*$/\1/")
-	local DATABASE_PASSWORD=$(grep -A8 DATABASES ${POOTLE_CONF} | grep PASSWORD | sed -r "s/^.*: '(.*)'.*$/\1/")
-	local DATABASE_HOST=$(grep -A8 DATABASES ${POOTLE_CONF} | grep HOST | sed -r "s/^.*: '(.*)'.*$/\1/")
-
-	echo $@ | mysql -u ${DATABASE_USER} -p"${DATABASE_PASSWORD}" -h ${DATABASE_HOST} ${DATABASE_NAME} | sed '1d'
+	echo $@ | mysql -u $MYSQL_USER -p"$MYSQL_PASSWORD" -h mysql $MYSQL_DATABASE | sed '1d'
 }
 
 #
@@ -86,7 +81,7 @@ function project_exist() {
 function check_available_languages() {
 	for LANGUAGE_KEY in $(cat /home/pootle/templates/languages.txt); do
 		if [ -n "$1" ] && [ ! -d ${POOTLE_PO}/$1/$LANGUAGE_KEY ]; then
-			mkdir -p $POOTLE_PO/$1/$LANGUAGE_KEY
+			cp -r $POOTLE_PO/$1/templates/ $POOTLE_PO/$1/$LANGUAGE_KEY
 			echo "[NOTICE]  Create project language \"$LANGUAGE_KEY\" for \"$1\""
 			pootle sync_stores --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
 			pootle refresh_stats --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1

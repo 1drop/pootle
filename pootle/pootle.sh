@@ -1,5 +1,5 @@
 POOTLE_BIN=/usr/local/bin/pootle
-POOTLE_CONF=/etc/pootle/pootle.conf
+POOTLE_CONF=/root/.pootle/pootle.conf
 POOTLE_SCRIPT_HOME=/home/pootle/scripts
 
 POOTLE_BACKUP_ROOT=/home/pootle/backup

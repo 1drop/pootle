@@ -14,7 +14,6 @@ Use the following command to bring up the environment:
 On the first run you must setup your database and create an admin user.
 
     docker-compose exec pootle bash
-    source env/bin/activate
     pootle migrate
     pootle initdb
     pootle createsuperuser

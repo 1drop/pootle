@@ -13,6 +13,7 @@ RUN /usr/local/bin/apt-install build-essential \
   xsltproc \
   zip \
   unzip \
+  mysql-client \
   python-dev \
   libxml2-dev \
   libssl-dev \
