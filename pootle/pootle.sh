@@ -15,7 +15,7 @@ STATE_DIR=${POOTLE_SCRIPT_HOME}/.build-language-pack-state
 
 CONF_LANG_COMPAT=${POOTLE_SCRIPT_HOME}/etc/lang-compat.conf
 
-LOCAL_GIT_CLONE_DIRECTORY=/src/pootle/git-clones
+LOCAL_GIT_CLONE_DIRECTORY=/srv/pootle/git-clones
 
 XSL_LLXML2XLIFF_SOURCE=${POOTLE_SCRIPT_HOME}/etc/xsl/xliff2llxml-source.xsl
 XSL_LLXML2XLIFF_TARGET=${POOTLE_SCRIPT_HOME}/etc/xsl/xliff2llxml-target.xsl

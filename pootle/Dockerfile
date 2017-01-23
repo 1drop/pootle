@@ -33,7 +33,7 @@ RUN pip install -q virtualenv \
 RUN pip install -I pootle==$POOTLE_VERSION
 # Configure pootle
 COPY pootle.conf /root/.pootle/pootle.conf
-RUN mkdir -p /srv/pootle/data/.tmp
+RUN mkdir -p /srv/pootle/po/.tmp
 RUN ln -s /usr/lib/python2.7/dist-packages/xapian /usr/local/lib/python2.7/dist-packages/xapian
 # RUN pootle setup
 COPY pootle.sh /etc/profile.d/pootle.sh

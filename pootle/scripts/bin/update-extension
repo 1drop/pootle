@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+. /etc/profile.d/pootle.sh
+. /home/pootle/scripts/etc/functions
+
+set -o errtrace
+set -o nounset
+
+#  Trap non-normal exit signals: 1/HUP, 2/INT, 3/QUIT, 15/TERM, ERR
+trap onexit 1 2 3 15
+
+#--- onexit() -----------------------------------------------------
+#  @param $1 integer  (optional) Exit status.  If not set, use `$?'
+function onexit() {
+	local exit_status=${1:-$?}
+	if [ $exit_status -gt 0 ]; then
+		echo Exiting $0 with $exit_status
+	fi
+	exit $exit_status
+}
+
+if [ $# -lt 1 ]; then
+	echo "Usage: $0 <extension-key>" >&2
+	exit 1
+fi
+
+SAVEIFS=$IFS
+
+EXTENSION=$(echo $1 | tr '[:upper:]' '[:lower:]')
+PROJECT_NAME="TYPO3.ext.${EXTENSION}"
+PROJECT_DIRECTORY="${POOTLE_PO}/${PROJECT_NAME}"
+
+#
+# Check if the project exist
+if [ ! -d ${PROJECT_DIRECTORY} ]; then
+	echo
+	echo "[ERROR]   Project ${PROJECT_NAME} doesn't exist in Pootle, please create it before using this script"
+	echo "[ERROR]   Please create directory: ${PROJECT_DIRECTORY}"
+	onexit 1
+fi
+
+#
+# Check if the templates directory exist
+TEMPLATE_DIRECTORY="${PROJECT_DIRECTORY}/templates"
+if [ ! -d $TEMPLATE_DIRECTORY ]; then
+	echo
+	echo "[INFO]    Templates directory for project ${PROJECT_NAME} doesn't exist in Pootle"
+	echo "[NOTICE]  Create the templates directory"
+	mkdir -p $TEMPLATE_DIRECTORY
+fi
+
+if [ ! -d $LOCAL_GIT_CLONE_DIRECTORY/repos/$EXTENSION ]; then
+	echo "[ERROR]	No project sources found in ${LOCAL_GIT_CLONE_DIRECTORY}/repos/${EXTENSION}"
+	onexit 1
+fi
+
+pushd $LOCAL_GIT_CLONE_DIRECTORY/repos >/dev/null
+
+IFS=$(echo -en "\n\b")
+
+#
+# Create directory structure for templates
+rm -rf /tmp/TYPO3.ext.${EXTENSION}
+for FILE in $(find ${EXTENSION}/ -name \*.xml); do
+	grep "T3locallang" "${FILE}" >/dev/null
+	if [ $? -eq 0 ]; then
+		mkdir -p /tmp/TYPO3.ext.$(dirname ${FILE})
+		cp ${FILE} /tmp/TYPO3.ext.${FILE}
+	fi
+done
+for FILE in $(find ${EXTENSION}/ -name \*.xlf); do
+	# Count number of dots in filename to skip e.g., de.locallang.xlf
+	DOTS=$(echo -n $(basename $FILE) | sed 's/[^.]//g' | wc -c)
+	if [ ${DOTS} -eq 1 ]; then
+		mkdir -p /tmp/TYPO3.ext.$(dirname ${FILE})
+		cp ${FILE} /tmp/TYPO3.ext.${FILE}
+	fi
+done
+
+for FILE in $(find /tmp/TYPO3.ext.${EXTENSION} -name \*.xml); do
+	grep "T3locallang" "${FILE}" >/dev/null
+	if [ $? -eq 0 ]; then
+		XLF_FILE=$(echo ${FILE} | sed s/.xml$/.xlf/)
+		if [ ! -f ${XLF_FILE} ]; then
+			echo "[INFO]    Convert LLXML to XLIFF for file ${FILE}"
+			xsltproc --stringparam lang en \
+				--stringparam extension ${EXTENSION} \
+				--stringparam date "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" ${XSL_LLXML2TEMPLATE} ${FILE} | \
+				xmlstarlet ed --insert "/xliff/file/body/trans-unit" --type attr -n xml:space -v preserve > ${XLF_FILE}
+		fi
+	fi
+	rm -f ${FILE}
+done
+popd >/dev/null
+
+#
+# Deploy new templates files
+echo "[INFO]    Deploy new templates to ${TEMPLATE_DIRECTORY}"
+
+mkdir -p /tmp/backup
+cd ${TEMPLATE_DIRECTORY}/../../ >/dev/null && \
+	tar cfzp /tmp/backup/${PROJECT_NAME}-$(date +%Y%m%d).tar.gz ${PROJECT_NAME} && \
+		cd - >/dev/null && \
+		rm -Rf ${TEMPLATE_DIRECTORY} && \
+		mkdir -p ${TEMPLATE_DIRECTORY} && \
+		cp -r /tmp/${PROJECT_NAME}/* ${TEMPLATE_DIRECTORY} || \
+		onexit 5
+
+#
+# Check project available language
+check_available_languages ${PROJECT_NAME}
+
+# Find new files automatically
+echo "[INFO]    Update stores"
+pootle update_stores --force --project=${PROJECT_NAME} >/dev/null 2>&1
+
+echo "[INFO]    Refresh statistics"
+pootle refresh_stats --project=${PROJECT_NAME} >/dev/null 2>&1
+
+#
+# Cleanup
+pushd /tmp >/dev/null
+if [ -d ${EXTENSION} ]; then
+	rm -rf ${EXTENSION}
+	rm -rf TYPO3.ext.${EXTENSION}
+fi
+popd >/dev/null
+
+IFS=$SAVEIFS
+
+onexit

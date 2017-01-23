@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+. /etc/profile.d/pootle.sh
+. /home/pootle/scripts/etc/functions
+
+set -o errtrace
+set -o nounset
+
+#  Trap non-normal exit signals: 1/HUP, 2/INT, 3/QUIT, 15/TERM, ERR
+trap onexit 1 2 3 15
+
+#--- onexit() -----------------------------------------------------
+#  @param $1 integer  (optional) Exit status.  If not set, use `$?'
+function onexit() {
+	local exit_status=${1:-$?}
+	if [ $exit_status -gt 0 ]; then
+		echo Exiting $0 with $exit_status
+	fi
+	exit $exit_status
+}
+
+echo "[INFO]    Updating projects from scripts"
+
+pushd ${POOTLE_PO} >/dev/null
+PROJECTS=$(find . -maxdepth 1 -name TYPO3.ext.\* -type d | sort)
+popd >/dev/null
+
+for PROJECT in ${PROJECTS};
+do
+	EXTENSION=$(echo ${PROJECT} | cut -b13-)
+
+	UPDATE_SCRIPT=${LOCAL_GIT_CLONE_DIRECTORY}/scripts/${EXTENSION}.sh
+	if [ ! -f ${UPDATE_SCRIPT} ]; then
+		echo "[WARN] No update script found for extension ${EXTENSION} at ${UPDATE_SCRIPT}"
+	else
+		echo "[INFO]    Updating extension ${EXTENSION}"
+		${UPDATE_SCRIPT}
+	fi
+	echo "[INFO]    Syncing extension ${EXTENSION}"
+	${POOTLE_SCRIPT_HOME}/bin/update-extension ${EXTENSION}
+done
+
+onexit

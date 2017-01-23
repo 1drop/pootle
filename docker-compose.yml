@@ -45,6 +45,4 @@ volumes:
   mysql-data:
   l10n-ter:
   pootle-po:
-  pootle-data:
   pootle-git:
-  
