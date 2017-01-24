@@ -12,8 +12,11 @@ RUN /usr/local/bin/apt-install build-essential \
   xmlstarlet \
   xsltproc \
   zip \
+  cron \
+  supervisor \
   unzip \
   mysql-client \
+  openssh-client \
   python-dev \
   libxml2-dev \
   libssl-dev \
@@ -51,5 +54,5 @@ WORKDIR /home/pootle
 
 EXPOSE 8080
 VOLUME ["/usr/local/lib/python2.7/dist-packages/pootle"]
-COPY run.sh /usr/local/bin/run
-CMD ["/bin/bash", "/usr/local/bin/run"]
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+CMD ["/usr/bin/supervisord"]
