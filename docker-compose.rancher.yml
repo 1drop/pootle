@@ -1,0 +1,46 @@
+version: '2'
+
+services: 
+  nginx:
+    image: 1drop/pootle:nginx
+    depends_on: 
+      - pootle
+    volumes_from: 
+      - pootle
+    environment: 
+      - VIRTUAL_HOST=pootle.docker
+      - VIRTUAL_PORT=80
+  pootle:
+    image: 1drop/pootle:pootle
+    labels:
+      io.rancher.sidekicks: nginx
+    depends_on: 
+      - redis
+      - mysql
+    volumes:
+      - /data/pootle/l10n_ter:/l10n_ter
+      - /data/pootle/po:/srv/pootle/po
+      - /data/pootle/git-clones:/srv/pootle/git-clones
+    environment:
+      - SECRET_KEY=YOUR SECRET KEY HERE
+      - DOMAIN=pootle.docker
+      - POOTLE_TITLE=TYPO3 Translation Server
+      - POOTLE_ADMIN_NAME=John Doe
+      - POOTLE_ADMIN_MAIL=john.doe@mail.com
+      - POOTLE_SENDER_MAIL=no-reply@pootle.docker
+      - MYSQL_ROOT_PASSWORD=pootle
+      - MYSQL_USER=pootle
+      - MYSQL_PASSWORD=pootle
+      - MYSQL_DATABASE=pootle_db
+  mysql:
+    image: mariadb:10
+    volumes:
+      - /data/pootle/mysql:/var/lib/mysql
+    environment: 
+      - MYSQL_ROOT_PASSWORD=pootle
+      - MYSQL_USER=pootle
+      - MYSQL_PASSWORD=pootle
+      - MYSQL_DATABASE=pootle_db
+  redis:
+    image: redis
+

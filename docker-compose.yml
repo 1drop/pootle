@@ -21,12 +21,9 @@ services:
     depends_on: 
       - redis
       - mysql
-    ports:
-      - "8000:8000"
     volumes:
       - l10n-ter:/l10n_ter
       - pootle-po:/srv/pootle/po
-      - pootle-data:/srv/pootle/data
       - pootle-git:/srv/pootle/git-clones
     environment:
       - SECRET_KEY=SET THIS TO A DJANGO SECRET KEY
