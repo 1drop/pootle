@@ -80,12 +80,10 @@ function project_exist() {
 # Usage: check_available_languages project.name
 function check_available_languages() {
 	for LANGUAGE_KEY in $(cat /home/pootle/templates/languages.txt); do
-		if [ -n "$1" ] && [ ! -d ${POOTLE_PO}/$1/$LANGUAGE_KEY ]; then
-			cp -r $POOTLE_PO/$1/templates/ $POOTLE_PO/$1/$LANGUAGE_KEY
-			echo "[NOTICE]  Create project language \"$LANGUAGE_KEY\" for \"$1\""
-			pootle sync_stores --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
-			pootle refresh_stats --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
-		fi
+		cp -r $POOTLE_PO/$1/templates/ $POOTLE_PO/$1/$LANGUAGE_KEY
+		echo "[NOTICE]  Syncing project language \"$LANGUAGE_KEY\" from templates for \"$1\""
+		pootle sync_stores --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
+		pootle refresh_stats --project=$1 --language=$LANGUAGE_KEY >/dev/null 2>&1
 	done
 }
 

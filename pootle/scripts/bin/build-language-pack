@@ -83,7 +83,7 @@ for EXTNAME in $EXTENSIONS; do
 		fi
 		LAST_EDIT=$(lastedit "$EXT_PREFIX.$EXTNAME" $ORIG_LANG)
 		if [[ $LAST_EDIT -gt 0 && $LAST_EDIT -ne $LAST_GENERATION ]]; then
-			pootle sync_stores --overwrite --project="$EXT_PREFIX.$EXTNAME" --language=$ORIG_LANG >/dev/null 2>&1
+			pootle sync_stores --overwrite --force --project="$EXT_PREFIX.$EXTNAME" --language=$ORIG_LANG >/dev/null 2>&1
 
 			BUILD_PATH=${BUILD_EXT_PATH}/$LANG/$EXTNAME
 			mkdir -p ${BUILD_PATH}
