@@ -47,6 +47,4 @@ do e.g. git clone, download, or whatever to get the files to the `repos/myextnam
 # TODO
 
 - custom CSS (pootle 2.7) must be included in a template block as asset
-- export translations according to TYPO3 convention https://git.typo3.org/Teams/Translation.git/blob/HEAD:/typo3/files/scripts/bin/build-language-pack
-- Document https://docs.typo3.org/typo3cms/CoreApiReference/Internationalization/Translation/Index.html#custom-translation-servers
-- Think of automatic refresh mechanism => partial extension files from git ?!
+- Documentation https://docs.typo3.org/typo3cms/CoreApiReference/Internationalization/Translation/Index.html#custom-translation-servers
