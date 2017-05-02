@@ -25,7 +25,8 @@ RUN /usr/local/bin/apt-install build-essential \
   libmysqlclient-dev \
   python-pip \
   python-xapian \
-  xapian-tools
+  xapian-tools \
+  python-setuptools
 # Install python packages
 RUN pip install -q virtualenv \
     MySQL-python \
