@@ -34,7 +34,7 @@ for EXTNAME in $EXTENSIONS; do
 
 	UPDATED_PACKAGES=0
 
-	LANGUAGES="$(ls | grep -v templates) ba br ch cz dk si se gr hk kr ua jp qc vn ge ga"
+	LANGUAGES="$(ls | grep -v templates) ba br ch cz dk si se gr hk kr ua jp qc vn ge ga zh"
 	for LANG in $LANGUAGES; do
 		ORIG_LANG=$LANG
 		case "$LANG" in
@@ -70,6 +70,8 @@ for EXTNAME in $EXTENSIONS; do
 				ORIG_LANG=ka ;;
 			'ga')
 				ORIG_LANG=gl ;;
+			'zh')
+				ORIG_LANG=zh_CN ;;
 		esac
 
 		echo -n "   processing $LANG ... "
