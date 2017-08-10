@@ -33,7 +33,8 @@ RUN pip install -q virtualenv \
     flup \
     python-memcached \
     python-Levenshtein \
-    m2crypto
+    m2crypto \
+    wheel
 # Install pootle
 RUN pip install -I pootle==$POOTLE_VERSION
 # Configure pootle
